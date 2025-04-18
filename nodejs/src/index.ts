@@ -12,7 +12,6 @@ let sqlConnect = async (conf: WSConfig) => {
         logger.error(err);
         throw err;
     }
-        
 };
 
 let tmqConnect = async (configMap: Map<string, string>) => {

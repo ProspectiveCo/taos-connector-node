@@ -1,4 +1,14 @@
 <!-- omit in toc -->
+# TDEngine Browser WebSocket Connector
+
+Forked from [GitHub](https://github.com/taosdata/taos-connector-node/commit/c06e1d8929e8de899889f43f8e0faebce1cbc39e)
+And patches made to support the browser instead of a Node.js environment.
+
+Possible TODOs:
+
+* Make this compatible with both Browser and NodeJS
+* rename `nodejs/` dir to `src`
+
 # TDengine Node.js Connector
 
 [![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/taosdata/taos-connector-node/build.yaml)](https://github.com/taosdata/taos-connector-node/actions/workflows/build.yaml)

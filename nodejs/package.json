@@ -3,9 +3,10 @@
   "version": "3.1.5",
   "description": "The websocket Node.js connector for TDengine. TDengine versions 3.3.2.0 and above are recommended to use this connector.",
   "source": "index.ts",
-  "main": "lib/index.js",
-  "module": "lib/index.js",
+  "main": "lib/bundle.js",
+  "module": "lib/bundle.js",
   "types": "lib/index.d.ts",
+  "type": "module",
   "directories": {
     "example": "example",
     "test": "test"
@@ -14,9 +15,9 @@
     "test": "jest --coverage --coverageDirectory=../coverage",
     "example": "tsc && node lib/example/basicSql.js",
     "build": "tsc",
-    "prepublish": "node ./prepare.js"
+    "install": "$npm_execpath run build && node build.js",
+    "prepublish_XXXFIXME_MAKE_ME_A_MODULE_TYVM": "node ./prepare.js"
   },
-
   "repository": {
     "type": "git",
     "url": "git+https://github.com/taosdata/taos-connector-node.git"
@@ -44,6 +45,7 @@
     "@types/uuid": "^9.0.8",
     "@types/websocket": "^1.0",
     "async-mutex": "^0.5.0",
+    "esbuild": "^0.25.2",
     "json-bigint": "^1.0.0",
     "moment-timezone": "^0.5.45",
     "typescript": "^5.3.3",
@@ -58,12 +60,13 @@
     "@types/jest": "^29.2.1",
     "@types/json-bigint": "^1.0.1",
     "@types/node": "^18.0.0",
-    "@types/websocket": "^1.0",
     "@types/uuid": "^9.0.8",
+    "@types/websocket": "^1.0",
+    "esbuild": "^0.25.2",
     "jest": "^29.2.2",
     "parcel": "^2.7.0",
+    "qingwa": "^1.0.7",
     "ts-jest": "^29.0.3",
-    "typescript": "^5.3.3",
-    "qingwa": "^1.0.7"
+    "typescript": "^5.3.3"
   }
 }

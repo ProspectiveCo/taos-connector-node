@@ -1,0 +1,49 @@
+<html>
+  <head>
+    <script type="module">
+      import * as taos from "../lib/bundle.js";
+
+      const url = "http://localhost:6041";
+      const username = "root";
+      const password = "taosdata";
+      const SQL = "select * from test.meters limit 1000";
+
+      export async function createConnect(e) {
+        e.preventDefault();
+        const url = document.querySelector("#tde-url").value;
+        const token = document.querySelector("#tde-token").value;
+        let conn = null;
+        try {
+          let conf = new taos.WSConfig(url);
+          conf.setToken(token);
+          console.log(`Connecting to ${url}`);
+          conn = await taos.sqlConnect(conf);
+          console.log(conn);
+        } catch (err) {
+          throw err;
+        } finally {
+          if (conn) {
+            await conn.close();
+          }
+        }
+      }
+
+    document.querySelector('button').addEventListener('click', createConnect);
+
+    </script>
+  </head>
+  <body>
+      <p>TODO: delete these before committing</p>
+      <pre>
+        url = "ws://localhost:6041";
+        token = "/KfeAzX/f9na8qdtNZmtONryp201ma04bEl8LcvLUd7a8qdtNZmtONryp201ma04";
+      </pre>
+    <form>
+      <label for="tde-url">TDEngine URL</label>
+      <input id="tde-url" type="text" name="URL" />
+      <label for="tde-token">TDEngine Token</label>
+      <input id="tde-token" type="text" name="Token" />
+      <button>Make connection</button>
+    </form>
+  </body>
+</html>
