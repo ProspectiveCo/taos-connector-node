@@ -6,7 +6,7 @@ on:
   push:
     branches: ['main']
   pull_request:
-    branches: ['main'] 
+    branches: ['main']
 
 jobs:
   build:
@@ -15,7 +15,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [14.x,16.x]   
+        node-version: [14.x,16.x]
     steps:
 
     - name: Build Tools
@@ -32,14 +32,14 @@ jobs:
           path: 'TDengine'
           ref: 'main'
           submodules: 'recursive'
-          
+
     - name: Install system dependencies
       run: |
         sudo apt update -y
         sudo apt install -y build-essential cmake \
           libgeos-dev libjansson-dev libsnappy-dev liblzma-dev libz-dev \
-          zlib1g pkg-config libssl-dev gawk  
-          
+          zlib1g pkg-config libssl-dev gawk
+
     - name: install TDengine
       run: |
         cd TDengine
@@ -50,7 +50,7 @@ jobs:
         sudo make install
         which taosd
         which taosadapter
-          
+
     - name: start taosd
       run: |
         nohup sudo taosd &
@@ -67,14 +67,13 @@ jobs:
         node-version: ${{ matrix.node-version }}
 
     - name: test nodejs websocket
-      working-directory: nodejs
       run: |
         ls -al
         npm install
         npm list
         npm run example
         npm run test
-        
+
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
       with:
