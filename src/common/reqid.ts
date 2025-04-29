@@ -1,5 +1,5 @@
 // import { createHash } from 'crypto';
-import { v4 as uuidv4 } from "uuid";
+// import { v4 as uuidv4 } from "uuid";
 // import { pid } from "node:process";
 
 function hexStringToNumber(hexString: string): number {
@@ -11,7 +11,7 @@ function hexStringToNumber(hexString: string): number {
 }
 
 function uuidToHash(): number {
-    let uuid = uuidv4();
+    // let uuid = uuidv4();
     // create SHA-256 hash
     const hash = crypto.randomUUID();
 

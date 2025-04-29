@@ -94,7 +94,7 @@ export class WebSocketConnectionPool {
     destroyed() {
         if (this.pool) {
             for (let values of this.pool.values()) {
-                for (let i in values) {
+                for (let _ in values) {
                     values.pop()?.close();
                 }
             }

@@ -39,7 +39,7 @@
 //     exitOnError: false, // Do not exit the process when an error occurs
 // });
 
-export function setLevel(level: string) {
+export function setLevel(_level: string) {
     // transport.level = level;
 }
 

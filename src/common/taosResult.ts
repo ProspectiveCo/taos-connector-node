@@ -22,65 +22,70 @@ export interface MessageResp {
 }
 
 export class TaosResult {
-    private _topic?: string
+    private _topic?: string;
     private _meta: Array<ResponseMeta> | null;
     private _data: Array<Array<any>> | null;
 
     private _precision: number | null | undefined;
     protected _affectRows: number | null | undefined;
     private _totalTime = 0;
-   
+
     /** unit nano seconds */
     private _timing: bigint | null | undefined;
     constructor(queryResponse?: WSQueryResponse) {
-        
         if (queryResponse == null) {
-            this._meta = []
-            this._data = []
-            this._timing = BigInt(0)
-            return
+            this._meta = [];
+            this._data = [];
+            this._timing = BigInt(0);
+            return;
         }
         if (queryResponse.is_update == true) {
-            this._meta = null
-            this._data = null
+            this._meta = null;
+            this._data = null;
         } else {
-            if (queryResponse.fields_count && queryResponse.fields_names && queryResponse.fields_types && queryResponse.fields_lengths) {
+            if (
+                queryResponse.fields_count &&
+                queryResponse.fields_names &&
+                queryResponse.fields_types &&
+                queryResponse.fields_lengths
+            ) {
                 let _meta = [];
                 for (let i = 0; i < queryResponse.fields_count; i++) {
                     _meta.push({
                         name: queryResponse.fields_names[i],
                         type: queryResponse.fields_types[i],
-                        length: queryResponse.fields_lengths[i]
-                    })
+                        length: queryResponse.fields_lengths[i],
+                    });
                 }
                 this._meta = _meta;
             } else {
-                throw new TaosResultError(ErrorCode.ERR_INVALID_FETCH_MESSAGE_DATA, 
-                    `fields_count,fields_names,fields_types,fields_lengths of the update query response should be null`)
+                throw new TaosResultError(
+                    ErrorCode.ERR_INVALID_FETCH_MESSAGE_DATA,
+                    `fields_count,fields_names,fields_types,fields_lengths of the update query response should be null`
+                );
             }
             this._data = [];
         }
 
-        this._affectRows = queryResponse.affected_rows
-        this._timing = queryResponse.timing
-        this._precision = queryResponse.precision
-        this._totalTime = queryResponse.totalTime
+        this._affectRows = queryResponse.affected_rows;
+        this._timing = queryResponse.timing;
+        this._precision = queryResponse.precision;
+        this._totalTime = queryResponse.totalTime;
     }
 
     public setPrecision(precision: number) {
         this._precision = precision;
     }
 
-    public setRowsAndTime(rows: number, timing?:bigint) {
+    public setRowsAndTime(rows: number, timing?: bigint) {
         if (this._affectRows) {
             this._affectRows += rows;
-        }else{
-            this._affectRows = rows
+        } else {
+            this._affectRows = rows;
         }
         if (timing) {
-            this.setTiming(timing)
+            this.setTiming(timing);
         }
-        
     }
     public getTopic(): string {
         if (this._topic) {
@@ -95,7 +100,7 @@ export class TaosResult {
         return this.getTDengineMeta();
     }
 
-    public setMeta(metaData: ResponseMeta){
+    public setMeta(metaData: ResponseMeta) {
         if (this._meta) {
             this._meta.push(metaData);
         }
@@ -115,62 +120,65 @@ export class TaosResult {
         return this._meta;
     }
 
-    public getPrecision():number | null | undefined {
+    public getPrecision(): number | null | undefined {
         return this._precision;
     }
     public getTotalTime() {
         return this._totalTime;
     }
-    public addTotalTime(totalTime:number) {
+    public addTotalTime(totalTime: number) {
         this._totalTime += totalTime;
     }
 
     public setTiming(timing?: bigint) {
         if (!this._timing) {
-            this._timing = BigInt(0) 
+            this._timing = BigInt(0);
         }
 
         if (timing) {
-            this._timing = this._timing + timing
-        }    
+            this._timing = this._timing + timing;
+        }
     }
     /**
-     * Mapping the WebSocket response type code to TDengine's type name. 
+     * Mapping the WebSocket response type code to TDengine's type name.
      */
     private getTDengineMeta(): Array<TDengineMeta> | null {
         if (this._meta) {
-            let tdMeta = new Array<TDengineMeta>()
-            this._meta.forEach(m => {
+            let tdMeta = new Array<TDengineMeta>();
+            this._meta.forEach((m) => {
                 tdMeta.push({
                     name: m.name,
                     type: TDengineTypeName[m.type],
-                    length: m.length
-                })
-            })
+                    length: m.length,
+                });
+            });
             return tdMeta;
-        } 
-        return null;  
+        }
+        return null;
     }
 }
 
-export function parseBlock(blocks: WSFetchBlockResponse, taosResult: TaosResult): TaosResult {
-    let metaList = taosResult.getTaosMeta()
-    let dataList = taosResult.getData()
-    let textDecoder = new TextDecoder()
+export function parseBlock(
+    blocks: WSFetchBlockResponse,
+    taosResult: TaosResult
+): TaosResult {
+    let metaList = taosResult.getTaosMeta();
+    let dataList = taosResult.getData();
+    let textDecoder = new TextDecoder();
     if (metaList && dataList && blocks && blocks.data) {
         let rows = blocks.data.getUint32(8, true);
         if (rows == 0) {
             return taosResult;
-        } 
+        }
 
-        taosResult.setTiming(blocks.timing) 
+        taosResult.setTiming(blocks.timing);
         const INT_32_SIZE = 4;
         // Offset num of bytes from rawBlockBuffer.
-        let bufferOffset = (4 * 5) + 8 + (4 + 1) * metaList.length
-        let colLengthBlockSize = INT_32_SIZE * metaList.length
-        logger.debug("===colLengthBlockSize:" + colLengthBlockSize)
+        let bufferOffset = 4 * 5 + 8 + (4 + 1) * metaList.length;
+        let colLengthBlockSize = INT_32_SIZE * metaList.length;
+        logger.debug("===colLengthBlockSize:" + colLengthBlockSize);
 
-        let bitMapSize = (rows + (1 << 3) - 1) >> 3
+        let bitMapSize = (rows + (1 << 3) - 1) >> 3;
 
         // whole raw block ArrayBuffer
         // let dataBuffer = blocks.data.slice(bufferOffset);
@@ -184,45 +192,87 @@ export function parseBlock(blocks: WSFetchBlockResponse, taosResult: TaosResult)
             colBlockHead = 0 + colLengthBlockSize;
             // point to the head of columns's data in the block (include bitMap and offsetArray)
             let colDataHead = colBlockHead;
-            // traverse row after row. 
+            // traverse row after row.
             for (let j = 0; j < metaList.length; j++) {
-
-                let isVarType = _isVarType(metaList[j].type)
+                let isVarType = _isVarType(metaList[j].type);
                 if (isVarType == ColumnsBlockType.SOLID) {
-
-                    colDataHead = colBlockHead + bitMapSize + metaList[j].length * i
+                    colDataHead =
+                        colBlockHead + bitMapSize + metaList[j].length * i;
 
                     let byteArrayIndex = i >> 3;
-                    let bitwiseOffset = 7 - (i & 7)
+                    let bitwiseOffset = 7 - (i & 7);
                     // let bitMapArr = dataBuffer.slice(colBlockHead, colBlockHead + bitMapSize)
-                    let bitMapArr = new DataView(dataView.buffer, dataView.byteOffset + colBlockHead, bitMapSize);
-                    let bitFlag = (bitMapArr.getUint8(byteArrayIndex) & (1 << bitwiseOffset)) >> bitwiseOffset
+                    let bitMapArr = new DataView(
+                        dataView.buffer,
+                        dataView.byteOffset + colBlockHead,
+                        bitMapSize
+                    );
+                    let bitFlag =
+                        (bitMapArr.getUint8(byteArrayIndex) &
+                            (1 << bitwiseOffset)) >>
+                        bitwiseOffset;
 
                     if (bitFlag == 1) {
-                        row.push("NULL")
+                        row.push("NULL");
                     } else {
-                        row.push(readSolidData(dataView, colDataHead, metaList[j]))
+                        row.push(
+                            readSolidData(dataView, colDataHead, metaList[j])
+                        );
                     }
-                    
-                    colBlockHead = colBlockHead + bitMapSize + dataView.getInt32(INT_32_SIZE * j, true)
 
+                    colBlockHead =
+                        colBlockHead +
+                        bitMapSize +
+                        dataView.getInt32(INT_32_SIZE * j, true);
                 } else {
                     // if null check
-                    let varOffset = dataView.getInt32(colBlockHead + (INT_32_SIZE * i), true)
+                    let varOffset = dataView.getInt32(
+                        colBlockHead + INT_32_SIZE * i,
+                        true
+                    );
                     if (varOffset == -1) {
-                        row.push("NULL")
-                        colBlockHead = colBlockHead + INT_32_SIZE * rows + dataView.getInt32(j * INT_32_SIZE, true);
+                        row.push("NULL");
+                        colBlockHead =
+                            colBlockHead +
+                            INT_32_SIZE * rows +
+                            dataView.getInt32(j * INT_32_SIZE, true);
                     } else {
-                        colDataHead = colBlockHead + INT_32_SIZE * rows + varOffset
+                        colDataHead =
+                            colBlockHead + INT_32_SIZE * rows + varOffset;
                         let dataLength = dataView.getInt16(colDataHead, true);
                         if (isVarType == ColumnsBlockType.VARCHAR) {
-                            row.push(readVarchar(dataView.buffer, dataView.byteOffset + colDataHead + 2, dataLength, textDecoder))
-                        } else if(isVarType == ColumnsBlockType.GEOMETRY || isVarType == ColumnsBlockType.VARBINARY) {
-                            row.push(readBinary(dataView.buffer, dataView.byteOffset + colDataHead  + 2, dataLength))
+                            row.push(
+                                readVarchar(
+                                    dataView.buffer,
+                                    dataView.byteOffset + colDataHead + 2,
+                                    dataLength,
+                                    textDecoder
+                                )
+                            );
+                        } else if (
+                            isVarType == ColumnsBlockType.GEOMETRY ||
+                            isVarType == ColumnsBlockType.VARBINARY
+                        ) {
+                            row.push(
+                                readBinary(
+                                    dataView.buffer,
+                                    dataView.byteOffset + colDataHead + 2,
+                                    dataLength
+                                )
+                            );
                         } else {
-                            row.push(readNchar(dataView.buffer, dataView.byteOffset+ colDataHead + 2, dataLength))
+                            row.push(
+                                readNchar(
+                                    dataView.buffer,
+                                    dataView.byteOffset + colDataHead + 2,
+                                    dataLength
+                                )
+                            );
                         }
-                        colBlockHead = colBlockHead + INT_32_SIZE * rows + dataView.getInt32(j * INT_32_SIZE, true);
+                        colBlockHead =
+                            colBlockHead +
+                            INT_32_SIZE * rows +
+                            dataView.getInt32(j * INT_32_SIZE, true);
                     }
                 }
             }
@@ -230,157 +280,176 @@ export function parseBlock(blocks: WSFetchBlockResponse, taosResult: TaosResult)
         }
         return taosResult;
     } else {
-        throw new TaosResultError(ErrorCode.ERR_INVALID_FETCH_MESSAGE_DATA , 
-            "cannot fetch block for an update query.")
+        throw new TaosResultError(
+            ErrorCode.ERR_INVALID_FETCH_MESSAGE_DATA,
+            "cannot fetch block for an update query."
+        );
     }
 }
 
 export function _isVarType(metaType: number): Number {
     switch (metaType) {
         case TDengineTypeCode.NCHAR: {
-            return ColumnsBlockType['NCHAR']
+            return ColumnsBlockType["NCHAR"];
         }
         case TDengineTypeCode.VARCHAR: {
-            return ColumnsBlockType['VARCHAR']
+            return ColumnsBlockType["VARCHAR"];
         }
         case TDengineTypeCode.BINARY: {
-            return ColumnsBlockType['VARCHAR']
+            return ColumnsBlockType["VARCHAR"];
         }
         case TDengineTypeCode.JSON: {
-            return ColumnsBlockType['VARCHAR']
+            return ColumnsBlockType["VARCHAR"];
         }
         case TDengineTypeCode.GEOMETRY: {
-            return ColumnsBlockType['GEOMETRY']
+            return ColumnsBlockType["GEOMETRY"];
         }
         case TDengineTypeCode.VARBINARY: {
-            return ColumnsBlockType.VARBINARY
+            return ColumnsBlockType.VARBINARY;
         }
         default: {
-            return ColumnsBlockType['SOLID']
+            return ColumnsBlockType["SOLID"];
         }
     }
 }
-export function readSolidDataToArray(dataBuffer: DataView, colBlockHead:number, 
-    rows:number, metaType: number, bitMapArr: Uint8Array): any[] {
-
-    let result:any[] = []
+export function readSolidDataToArray(
+    dataBuffer: DataView,
+    colBlockHead: number,
+    rows: number,
+    metaType: number,
+    bitMapArr: Uint8Array
+): any[] {
+    let result: any[] = [];
     switch (metaType) {
         case TDengineTypeCode.BOOL:
         case TDengineTypeCode.TINYINT:
-        case TDengineTypeCode.TINYINT_UNSIGNED:{
+        case TDengineTypeCode.TINYINT_UNSIGNED: {
             for (let i = 0; i < rows; i++, colBlockHead++) {
                 if (isNull(bitMapArr, i)) {
                     result.push(null);
-                }else{
+                } else {
                     result.push(dataBuffer.getInt8(colBlockHead));
                 }
-                
             }
             break;
         }
         case TDengineTypeCode.SMALLINT: {
-            for (let i = 0; i < rows; i++, colBlockHead+=2) {
+            for (let i = 0; i < rows; i++, colBlockHead += 2) {
                 if (isNull(bitMapArr, i)) {
                     result.push(null);
-                }else{
+                } else {
                     result.push(dataBuffer.getInt16(colBlockHead, true));
                 }
             }
             break;
         }
         case TDengineTypeCode.INT: {
-            for (let i = 0; i < rows; i++, colBlockHead+=4) {
+            for (let i = 0; i < rows; i++, colBlockHead += 4) {
                 if (isNull(bitMapArr, i)) {
                     result.push(null);
-                }else{
+                } else {
                     result.push(dataBuffer.getInt32(colBlockHead, true));
                 }
             }
             break;
         }
         case TDengineTypeCode.BIGINT: {
-            for (let i = 0; i < rows; i++, colBlockHead+=8) {
+            for (let i = 0; i < rows; i++, colBlockHead += 8) {
                 if (isNull(bitMapArr, i)) {
                     result.push(null);
-                }else{
+                } else {
                     result.push(dataBuffer.getBigInt64(colBlockHead, true));
                 }
             }
             break;
         }
         case TDengineTypeCode.SMALLINT_UNSIGNED: {
-            for (let i = 0; i < rows; i++, colBlockHead+=2) {
+            for (let i = 0; i < rows; i++, colBlockHead += 2) {
                 if (isNull(bitMapArr, i)) {
                     result.push(null);
-                }else{
+                } else {
                     result.push(dataBuffer.getUint16(colBlockHead, true));
                 }
             }
             break;
         }
         case TDengineTypeCode.INT_UNSIGNED: {
-            for (let i = 0; i < rows; i++, colBlockHead+=4) {
+            for (let i = 0; i < rows; i++, colBlockHead += 4) {
                 if (isNull(bitMapArr, i)) {
                     result.push(null);
-                }else{
+                } else {
                     result.push(dataBuffer.getUint32(colBlockHead, true));
                 }
             }
             break;
         }
         case TDengineTypeCode.BIGINT_UNSIGNED: {
-            for (let i = 0; i < rows; i++, colBlockHead+=8) {
+            for (let i = 0; i < rows; i++, colBlockHead += 8) {
                 if (isNull(bitMapArr, i)) {
                     result.push(null);
-                }else{
+                } else {
                     result.push(dataBuffer.getBigUint64(colBlockHead, true));
                 }
             }
             break;
         }
         case TDengineTypeCode.FLOAT: {
-            for (let i = 0; i < rows; i++, colBlockHead+=4) {
+            for (let i = 0; i < rows; i++, colBlockHead += 4) {
                 if (isNull(bitMapArr, i)) {
                     result.push(null);
-                }else{
-                    result.push(parseFloat(dataBuffer.getFloat32(colBlockHead, true).toFixed(5)));
+                } else {
+                    result.push(
+                        parseFloat(
+                            dataBuffer.getFloat32(colBlockHead, true).toFixed(5)
+                        )
+                    );
                 }
             }
-            break;    
+            break;
         }
         case TDengineTypeCode.DOUBLE: {
-
             for (let i = 0; i < rows; i++, colBlockHead += 8) {
                 if (isNull(bitMapArr, i)) {
                     result.push(null);
-                }else{
-                    result.push(parseFloat(dataBuffer.getFloat64(colBlockHead, true).toFixed(15)));
+                } else {
+                    result.push(
+                        parseFloat(
+                            dataBuffer
+                                .getFloat64(colBlockHead, true)
+                                .toFixed(15)
+                        )
+                    );
                 }
             }
-            break;            
+            break;
         }
         case TDengineTypeCode.TIMESTAMP: {
             for (let i = 0; i < rows; i++, colBlockHead += 8) {
                 if (isNull(bitMapArr, i)) {
                     result.push(null);
-                }else{
+                } else {
                     result.push(dataBuffer.getBigInt64(colBlockHead, true));
                 }
             }
             break;
         }
         default: {
-            throw new WebSocketQueryInterFaceError(ErrorCode.ERR_UNSUPPORTED_TDENGINE_TYPE, `unspported type ${metaType}`)
+            throw new WebSocketQueryInterFaceError(
+                ErrorCode.ERR_UNSUPPORTED_TDENGINE_TYPE,
+                `unspported type ${metaType}`
+            );
         }
     }
     return result;
-   
 }
-export function readSolidData(dataBuffer: DataView, colDataHead: number, meta: ResponseMeta): Number | Boolean | BigInt {
-
+export function readSolidData(
+    dataBuffer: DataView,
+    colDataHead: number,
+    meta: ResponseMeta
+): Number | Boolean | BigInt {
     switch (meta.type) {
         case TDengineTypeCode.BOOL: {
-            return (Boolean)(dataBuffer.getInt8(colDataHead));
+            return Boolean(dataBuffer.getInt8(colDataHead));
         }
         case TDengineTypeCode.TINYINT: {
             return dataBuffer.getInt8(colDataHead);
@@ -407,17 +476,24 @@ export function readSolidData(dataBuffer: DataView, colDataHead: number, meta: R
             return dataBuffer.getBigUint64(colDataHead, true);
         }
         case TDengineTypeCode.FLOAT: {
-            return parseFloat(dataBuffer.getFloat32(colDataHead, true).toFixed(5));
+            return parseFloat(
+                dataBuffer.getFloat32(colDataHead, true).toFixed(5)
+            );
         }
         case TDengineTypeCode.DOUBLE: {
-            return parseFloat(dataBuffer.getFloat64(colDataHead, true).toFixed(15));
+            return parseFloat(
+                dataBuffer.getFloat64(colDataHead, true).toFixed(15)
+            );
         }
         case TDengineTypeCode.TIMESTAMP: {
             return dataBuffer.getBigInt64(colDataHead, true);
-            // could change 
+            // could change
         }
         default: {
-            throw new WebSocketQueryInterFaceError(ErrorCode.ERR_UNSUPPORTED_TDENGINE_TYPE, `unspported type ${meta.type} for column ${meta.name}`)
+            throw new WebSocketQueryInterFaceError(
+                ErrorCode.ERR_UNSUPPORTED_TDENGINE_TYPE,
+                `unspported type ${meta.type} for column ${meta.name}`
+            );
         }
     }
 }
@@ -450,13 +526,12 @@ export function getString(dataBuffer: DataView, colDataHead: number, length: num
     return textDecoder.decode(dataView);
 }
 
-function iteratorBuff(arr: ArrayBuffer) {
-    let buf = Buffer.from(arr);
-    for (const value of buf) {
-        logger.debug(value.toString())
-    }
-
-}
+// function iteratorBuff(arr: ArrayBuffer) {
+//     let buf = Buffer.from(arr);
+//     for (const value of buf) {
+//         logger.debug(value.toString());
+//     }
+// }
 
 function isNull(bitMapArr:ArrayBuffer, n:number) {
     let c = new Uint8Array(bitMapArr);

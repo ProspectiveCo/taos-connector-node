@@ -23,17 +23,26 @@ const rune3Max = (1 << 16) - 1;
 export function appendRune(r:any) {
     let p:Array<any> = [];
     if (r <= rune1Max) {
-        p.push(r & 0xff);  
+        p.push(r & 0xff);
         return Buffer.from(p).toString();
     }
     if (r <= rune2Max) {
-        p.push(t2 | ((r >> 6) & 0xff), tx | (r & 0xff) & maskx)
-    } else if ((r > MaxRune) || (surrogateMax <= r && r <= surrogateMax)) {
-        p.push(RuneError)
+        p.push(t2 | ((r >> 6) & 0xff), tx | (r & 0xff & maskx));
+    } else if (r > MaxRune || (surrogateMin <= r && r <= surrogateMax)) {
+        p.push(RuneError);
     } else if (r <= rune3Max) {
-        p.push(t3 | ((r >> 12) & 0xff), tx | ((r >> 6) & 0xff) & maskx, tx | (r & 0xff) & maskx)
+        p.push(
+            t3 | ((r >> 12) & 0xff),
+            tx | ((r >> 6) & 0xff & maskx),
+            tx | (r & 0xff & maskx)
+        );
     } else {
-        p.push(t4 | ((r >> 18) & 0xff), tx | ((r >> 12) & 0xff) & maskx, tx | ((r >> 6) & 0xff) & maskx, tx | (r & 0xff) & maskx)
+        p.push(
+            t4 | ((r >> 18) & 0xff),
+            tx | ((r >> 12) & 0xff & maskx),
+            tx | ((r >> 6) & 0xff & maskx),
+            tx | (r & 0xff & maskx)
+        );
     }
 
     return Buffer.from(p).toString();

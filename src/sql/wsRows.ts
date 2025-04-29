@@ -5,30 +5,38 @@ import { WsClient } from '../client/wsClient';
 import logger from '../common/log';
 import { ReqId } from '../common/reqid';
 import { getBinarySql } from '../common/utils';
-import { BinaryQueryMessage, FetchRawBlockMessage } from '../common/constant';
+import { FetchRawBlockMessage } from "../common/constant";
 
 export class WSRows {
     private _wsClient: WsClient;
     private readonly _wsQueryResponse: WSQueryResponse;
     private _taosResult: TaosResult;
-    private _isClose : boolean;
-        
+    private _isClose: boolean;
+
     constructor(wsInterface: WsClient, resp: WSQueryResponse) {
         this._wsClient = wsInterface;
         this._wsQueryResponse = resp;
         this._taosResult = new TaosResult(resp);
-        this._isClose = false
+        this._isClose = false;
     }
 
     async next(): Promise<boolean> {
         if (this._wsQueryResponse.is_update || this._isClose) {
-            logger.debug("WSRows::Next::End=>", this._taosResult, this._isClose)
+            logger.debug(
+                "WSRows::Next::End=>",
+                this._taosResult,
+                this._isClose
+            );
             return false;
         }
-        
+
         let data = this._taosResult.getData();
         if (this._taosResult && data != null) {
-            if (data && Array.isArray(this._taosResult.getData()) && data.length > 0) {
+            if (
+                data &&
+                Array.isArray(this._taosResult.getData()) &&
+                data.length > 0
+            ) {
                 return true;
             }
         }
@@ -40,20 +48,36 @@ export class WSRows {
         return false;
     }
 
-    private async getBlockData():Promise<TaosResult> {
+    private async getBlockData(): Promise<TaosResult> {
         try {
             if (this._wsQueryResponse.id) {
                 let bigintReqId = BigInt(ReqId.getReqID());
-                let resp = await this._wsClient.sendBinaryMsg(bigintReqId, 
-                    "binary_query", getBinarySql(FetchRawBlockMessage, bigintReqId, BigInt(this._wsQueryResponse.id)), false, true);
-                
-                this._taosResult.addTotalTime(resp.totalTime)
+                let resp = await this._wsClient.sendBinaryMsg(
+                    bigintReqId,
+                    "binary_query",
+                    getBinarySql(
+                        FetchRawBlockMessage,
+                        bigintReqId,
+                        BigInt(this._wsQueryResponse.id)
+                    ),
+                    false,
+                    true
+                );
+
+                this._taosResult.addTotalTime(resp.totalTime);
                 let wsResponse = new WSFetchBlockResponse(resp.msg);
                 if (wsResponse.code != 0) {
-                    logger.error("Executing SQL statement returns error: ", wsResponse.code, wsResponse.message);
-                    throw new TaosResultError(wsResponse.code, wsResponse.message);
+                    logger.error(
+                        "Executing SQL statement returns error: ",
+                        wsResponse.code,
+                        wsResponse.message
+                    );
+                    throw new TaosResultError(
+                        wsResponse.code,
+                        wsResponse.message
+                    );
                 }
-                
+
                 if (wsResponse.finished == 1) {
                     this.close();
                     this._taosResult.setData(null);
@@ -62,19 +86,19 @@ export class WSRows {
                 }
             }
             return this._taosResult;
-        }catch(err:any){
+        } catch (err: any) {
             this.close();
             throw new TaosResultError(err.code, err.message);
-        } 
+        }
     }
-  
-    getMeta():Array<TDengineMeta> | null {
+
+    getMeta(): Array<TDengineMeta> | null {
         return this._taosResult.getMeta();
     }
 
     getData(): Array<any> | undefined {
         if (this._wsQueryResponse.is_update) {
-            return undefined; 
+            return undefined;
         }
 
         let data = this._taosResult.getData();
@@ -82,16 +106,15 @@ export class WSRows {
             if (Array.isArray(data) && data.length > 0) {
                 return data.pop();
             }
-        } 
+        }
         return undefined;
     }
 
-    async close():Promise<void> {
+    async close(): Promise<void> {
         if (this._isClose) {
-            return
+            return;
         }
-        this._isClose = true
-        this._wsClient.freeResult(this._wsQueryResponse)
+        this._isClose = true;
+        this._wsClient.freeResult(this._wsQueryResponse);
     }
-
 }
